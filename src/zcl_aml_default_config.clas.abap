@@ -1,0 +1,11 @@
+CLASS zcl_aml_default_config DEFINITION
+  PUBLIC FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES zif_aml_config.
+ENDCLASS.
+
+
+CLASS zcl_aml_default_config IMPLEMENTATION.
+ENDCLASS.
