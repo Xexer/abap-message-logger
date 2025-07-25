@@ -203,12 +203,20 @@ CLASS zcl_aml_log IMPLEMENTATION.
                             use_2nd_db_connection      = setting-use_2nd_db_connection
                             assign_to_current_appl_job = setting-save_with_job ).
 
-        result = VALUE #( saved  = abap_true
-                          handle = log->get_handle( ) ).
+        RETURN VALUE #( saved  = abap_true
+                        handle = log->get_handle( ) ).
+
+      CATCH cx_bali_not_possible INTO DATA(bali_error).
+        IF bali_error->error_code = bali_error->object_not_allowed.
+          RAISE EXCEPTION NEW zcx_aml_error( textid = zcx_aml_error=>error_release ).
+        ELSE.
+          RETURN VALUE #( saved   = abap_false
+                          message = bali_error->get_text( ) ).
+        ENDIF.
 
       CATCH cx_root INTO DATA(error).
-        result = VALUE #( saved   = abap_false
-                          message = error->get_text( ) ).
+        RETURN VALUE #( saved   = abap_false
+                        message = error->get_text( ) ).
     ENDTRY.
   ENDMETHOD.
 

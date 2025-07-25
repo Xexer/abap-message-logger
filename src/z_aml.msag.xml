@@ -26,6 +26,12 @@
      <MSGNR>002</MSGNR>
      <TEXT>Testing the message with &amp;1</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>Z_AML</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>No access to Application Log, check release state or relation.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
