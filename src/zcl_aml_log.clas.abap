@@ -23,7 +23,7 @@ CLASS zcl_aml_log DEFINITION
     "! @parameter message | Message with all fields
     "! @parameter result  | Flat message
     METHODS format_message_to_string
-      IMPORTING !message      TYPE symsg
+      IMPORTING !message      TYPE zif_aml_log=>t100_message
       RETURNING VALUE(result) TYPE zif_aml_log=>flat_message.
 
     "! Extract the Exception and fills the message structure (without type)
@@ -31,14 +31,14 @@ CLASS zcl_aml_log DEFINITION
     "! @parameter result    | Message structure
     METHODS extract_message_from_exception
       IMPORTING !exception    TYPE REF TO cx_root
-      RETURNING VALUE(result) TYPE symsg.
+      RETURNING VALUE(result) TYPE zif_aml_log=>t100_message.
 
     "! Takes a text and fills a placeholder message
     "! @parameter text   | Text or String
     "! @parameter result | Message structure
     METHODS fill_text_to_message
       IMPORTING !text         TYPE clike
-      RETURNING VALUE(result) TYPE symsg.
+      RETURNING VALUE(result) TYPE zif_aml_log=>t100_message.
 
     "! Create the header for the log
     "! @parameter result          | Instance of log header
@@ -51,20 +51,27 @@ CLASS zcl_aml_log DEFINITION
     "! @parameter class  | Message class input
     "! @parameter result | Assigned message class
     METHODS get_message_class
-      IMPORTING !class        TYPE symsg-msgid
-      RETURNING VALUE(result) TYPE symsg-msgid.
+      IMPORTING !class        TYPE zif_aml_log=>t100_message-msgid
+      RETURNING VALUE(result) TYPE zif_aml_log=>t100_message-msgid.
 
     "! Get message type with default value
     "! @parameter type   | Message type input
     "! @parameter result | Assigned message class
     METHODS get_message_type
-      IMPORTING !type         TYPE symsg-msgty
-      RETURNING VALUE(result) TYPE symsg-msgty.
+      IMPORTING !type         TYPE zif_aml_log=>t100_message-msgty
+      RETURNING VALUE(result) TYPE zif_aml_log=>t100_message-msgty.
 
     "! Returns the instance for the log and creates a new one, if it's empty
     "! @parameter result | Instance for log
     METHODS get_log
       RETURNING VALUE(result) TYPE REF TO if_bali_log.
+
+    "! Collect the message as internal format
+    "! @parameter message | T100 message to add
+    "! @parameter item    | BALI item for save
+    METHODS add_internal_message
+      IMPORTING !message TYPE zif_aml_log=>t100_message
+                item     TYPE REF TO if_bali_item_setter.
 ENDCLASS.
 
 
@@ -82,23 +89,20 @@ CLASS zcl_aml_log IMPLEMENTATION.
     DATA(new_message_class) = get_message_class( class ).
     DATA(new_message_type) = get_message_type( type ).
 
-    INSERT VALUE #( timestamp = utclong_current( )
-                    type      = new_message_type
-                    message   = VALUE symsg( msgty = new_message_type
+    add_internal_message( message = VALUE #( msgty = new_message_type
                                              msgid = new_message_class
                                              msgno = number
                                              msgv1 = v1
                                              msgv2 = v2
                                              msgv3 = v3
                                              msgv4 = v4 )
-                    item      = cl_bali_message_setter=>create( id         = new_message_class
-                                                                severity   = new_message_type
-                                                                number     = number
-                                                                variable_1 = CONV #( v1 )
-                                                                variable_2 = CONV #( v2 )
-                                                                variable_3 = CONV #( v3 )
-                                                                variable_4 = CONV #( v4 ) ) )
-           INTO TABLE collected_messages.
+                          item    = cl_bali_message_setter=>create( id         = new_message_class
+                                                                    severity   = new_message_type
+                                                                    number     = number
+                                                                    variable_1 = CONV #( v1 )
+                                                                    variable_2 = CONV #( v2 )
+                                                                    variable_3 = CONV #( v3 )
+                                                                    variable_4 = CONV #( v4 ) ) ).
   ENDMETHOD.
 
 
@@ -113,19 +117,16 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
   METHOD zif_aml_log~add_message_bapis.
     LOOP AT messages INTO DATA(bapi_message).
-      DATA(converted_message) = VALUE symsg( msgty = bapi_message-type
-                                             msgid = bapi_message-id
-                                             msgno = bapi_message-number
-                                             msgv1 = bapi_message-message_v1
-                                             msgv2 = bapi_message-message_v2
-                                             msgv3 = bapi_message-message_v3
-                                             msgv4 = bapi_message-message_v4 ).
+      DATA(converted_message) = VALUE zif_aml_log=>t100_message( msgty = bapi_message-type
+                                                                 msgid = bapi_message-id
+                                                                 msgno = bapi_message-number
+                                                                 msgv1 = bapi_message-message_v1
+                                                                 msgv2 = bapi_message-message_v2
+                                                                 msgv3 = bapi_message-message_v3
+                                                                 msgv4 = bapi_message-message_v4 ).
 
-      INSERT VALUE #( timestamp = utclong_current( )
-                      type      = bapi_message-type
-                      message   = converted_message
-                      item      = cl_bali_message_setter=>create_from_bapiret2( bapi_message ) )
-             INTO TABLE collected_messages.
+      add_internal_message( message = converted_message
+                            item    = cl_bali_message_setter=>create_from_bapiret2( bapi_message ) ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -135,12 +136,12 @@ CLASS zcl_aml_log IMPLEMENTATION.
     DATA(new_message_type) = get_message_type( type ).
 
     WHILE actual_exception IS BOUND.
-      INSERT VALUE #( timestamp = utclong_current( )
-                      type      = new_message_type
-                      message   = extract_message_from_exception( actual_exception )
-                      item      = cl_bali_exception_setter=>create( severity  = new_message_type
-                                                                    exception = actual_exception ) )
-             INTO TABLE collected_messages.
+      DATA(message) = extract_message_from_exception( actual_exception ).
+      message-msgty = new_message_type.
+
+      add_internal_message( message = message
+                            item    = cl_bali_exception_setter=>create( severity  = new_message_type
+                                                                        exception = actual_exception ) ).
 
       IF setting-no_stacked_exception = abap_true.
         RETURN.
@@ -152,13 +153,8 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~add_message_system.
-    DATA(system_message) = xco_cp=>sy->message( )->value.
-
-    INSERT VALUE #( timestamp = utclong_current( )
-                    type      = system_message-msgty
-                    message   = system_message
-                    item      = cl_bali_message_setter=>create_from_sy( ) )
-           INTO TABLE collected_messages.
+    add_internal_message( message = xco_cp=>sy->message( )->value
+                          item    = cl_bali_message_setter=>create_from_sy( ) ).
   ENDMETHOD.
 
 
@@ -167,12 +163,9 @@ CLASS zcl_aml_log IMPLEMENTATION.
     DATA(new_message) = fill_text_to_message( text ).
     new_message-msgty = new_message_type.
 
-    INSERT VALUE #( timestamp = utclong_current( )
-                    type      = new_message_type
-                    message   = new_message
-                    item      = cl_bali_free_text_setter=>create( severity = new_message_type
-                                                                  text     = text ) )
-           INTO TABLE collected_messages.
+    add_internal_message( message = new_message
+                          item    = cl_bali_free_text_setter=>create( severity = new_message_type
+                                                                      text     = text ) ).
   ENDMETHOD.
 
 
@@ -248,13 +241,15 @@ CLASS zcl_aml_log IMPLEMENTATION.
         IF bali_error->error_code = bali_error->object_not_allowed.
           RAISE EXCEPTION NEW zcx_aml_error( textid = zcx_aml_error=>error_release ).
         ELSE.
-          RETURN VALUE #( saved   = abap_false
-                          message = bali_error->get_text( ) ).
+          RETURN VALUE #( saved     = abap_false
+                          message   = bali_error->get_text( )
+                          exception = bali_error ).
         ENDIF.
 
       CATCH cx_root INTO DATA(error).
-        RETURN VALUE #( saved   = abap_false
-                        message = error->get_text( ) ).
+        RETURN VALUE #( saved     = abap_false
+                        message   = error->get_text( )
+                        exception = error ).
     ENDTRY.
   ENDMETHOD.
 
@@ -306,12 +301,12 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
     message_text = text.
 
-    RETURN VALUE symsg( msgid = 'Z_AML'
-                        msgno = '001'
-                        msgv1 = message_text+0(50)
-                        msgv2 = message_text+50(50)
-                        msgv3 = message_text+100(50)
-                        msgv4 = message_text+150(50) ).
+    RETURN VALUE zif_aml_log=>t100_message( msgid = 'Z_AML'
+                                            msgno = '001'
+                                            msgv1 = message_text+0(50)
+                                            msgv2 = message_text+50(50)
+                                            msgv3 = message_text+100(50)
+                                            msgv4 = message_text+150(50) ).
   ENDMETHOD.
 
 
@@ -351,5 +346,40 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
   METHOD zif_aml_log~get_log_handle.
     RETURN get_log( )->get_handle( ).
+  ENDMETHOD.
+
+
+  METHOD add_internal_message.
+    INSERT VALUE #( timestamp = utclong_current( )
+                    type      = message-msgty
+                    message   = message
+                    item      = item )
+           INTO TABLE collected_messages.
+  ENDMETHOD.
+
+
+  METHOD zif_aml_log~search_message.
+    DATA search_class  TYPE RANGE OF zif_aml_log=>t100_message-msgid.
+    DATA search_number TYPE RANGE OF zif_aml_log=>t100_message-msgno.
+    DATA search_type   TYPE RANGE OF zif_aml_log=>t100_message-msgty.
+
+    IF search-msgid IS NOT INITIAL.
+      search_class = VALUE #( ( sign = 'I' option = 'EQ' low = search-msgid ) ).
+    ENDIF.
+
+    IF search-msgno IS NOT INITIAL.
+      search_number = VALUE #( ( sign = 'I' option = 'EQ' low = search-msgno ) ).
+    ENDIF.
+
+    IF search-msgty IS NOT INITIAL.
+      search_type = VALUE #( ( sign = 'I' option = 'EQ' low = search-msgty ) ).
+    ENDIF.
+
+    LOOP AT collected_messages INTO DATA(found_message) WHERE     message-msgid IN search_class
+                                                              AND message-msgno IN search_number
+                                                              AND message-msgty IN search_type.
+      RETURN VALUE #( found   = abap_true
+                      message = found_message-message ).
+    ENDLOOP.
   ENDMETHOD.
 ENDCLASS.

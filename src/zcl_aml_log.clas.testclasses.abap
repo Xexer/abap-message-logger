@@ -92,6 +92,9 @@ CLASS ltc_external_methods DEFINITION FINAL
     METHODS check_error_in_log            FOR TESTING RAISING cx_static_check.
     METHODS check_warning_in_log          FOR TESTING RAISING cx_static_check.
     METHODS save_log_not_accessible       FOR TESTING RAISING cx_static_check.
+    METHODS search_message_found          FOR TESTING RAISING cx_static_check.
+    METHODS search_message_not_found      FOR TESTING RAISING cx_static_check.
+    METHODS search_message_with_type      FOR TESTING RAISING cx_static_check.
 ENDCLASS.
 
 
@@ -270,5 +273,58 @@ CLASS ltc_external_methods IMPLEMENTATION.
       CATCH zcx_aml_error.
         cl_abap_unit_assert=>assert_true( abap_true ).
     ENDTRY.
+  ENDMETHOD.
+
+
+  METHOD search_message_found.
+    DATA(cut) = zcl_aml_log_factory=>create( ).
+    cut->add_message( class  = 'Z_AML'
+                      number = '001'
+                      v1     = 'One'
+                      v2     = 'More'
+                      v3     = 'Time' ).
+    cut->add_message( class  = 'Z_AML'
+                      number = '003' ).
+
+    DATA(result) = cut->search_message( VALUE #( msgid = 'Z_AML'
+                                                 msgno = '003' ) ).
+
+    cl_abap_unit_assert=>assert_true( result-found ).
+  ENDMETHOD.
+
+
+  METHOD search_message_not_found.
+    DATA(cut) = zcl_aml_log_factory=>create( ).
+    cut->add_message( class  = 'Z_AML'
+                      number = '001'
+                      v1     = 'One'
+                      v2     = 'More'
+                      v3     = 'Time' ).
+    cut->add_message( class  = 'Z_AML'
+                      number = '003' ).
+
+    DATA(result) = cut->search_message( VALUE #( msgid = 'Z_AML'
+                                                 msgno = '002' ) ).
+
+    cl_abap_unit_assert=>assert_false( result-found ).
+  ENDMETHOD.
+
+
+  METHOD search_message_with_type.
+    DATA(cut) = zcl_aml_log_factory=>create( ).
+    cut->add_message( class  = 'Z_AML'
+                      number = '001'
+                      type   = 'E'
+                      v1     = 'One'
+                      v2     = 'More'
+                      v3     = 'Time' ).
+    cut->add_message( class  = 'Z_AML'
+                      number = '003'
+                      type   = 'W' ).
+
+    DATA(result) = cut->search_message( VALUE #( msgid = 'Z_AML'
+                                                 msgty = 'W' ) ).
+
+    cl_abap_unit_assert=>assert_true( result-found ).
   ENDMETHOD.
 ENDCLASS.

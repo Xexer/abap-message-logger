@@ -9,37 +9,47 @@ INTERFACE zif_aml_log
       default_message_class TYPE symsgid,
       default_message_type  TYPE symsgty,
       no_stacked_exception  TYPE abap_boolean,
-      save_with_job         TYPE abap_bool,
-      use_2nd_db_connection TYPE abap_bool,
+      save_with_job         TYPE abap_boolean,
+      use_2nd_db_connection TYPE abap_boolean,
       configuration         TYPE REF TO zif_aml_config,
     END OF default_setting.
+
+  TYPES:
+    single_message TYPE c LENGTH 220,
+
+    t100_message   TYPE symsg.
 
   TYPES:
     BEGIN OF internal_message,
       timestamp TYPE utclong,
       type      TYPE symsgty,
-      message   TYPE symsg,
+      message   TYPE t100_message,
       item      TYPE REF TO if_bali_item_setter,
     END OF internal_message,
     internal_messages TYPE STANDARD TABLE OF internal_message WITH EMPTY KEY.
 
   TYPES:
-    single_message TYPE c LENGTH 220,
+    bapi_message  TYPE bapiret2,
+    bapi_messages TYPE STANDARD TABLE OF bapi_message WITH EMPTY KEY,
 
-    bapi_message   TYPE bapiret2,
-    bapi_messages  TYPE STANDARD TABLE OF bapi_message WITH EMPTY KEY,
+    flat_message  TYPE string,
+    flat_messages TYPE STANDARD TABLE OF flat_message WITH EMPTY KEY,
 
-    flat_message   TYPE string,
-    flat_messages  TYPE STANDARD TABLE OF flat_message WITH EMPTY KEY,
-
-    rap_messages   TYPE STANDARD TABLE OF REF TO if_abap_behv_message WITH EMPTY KEY.
+    rap_messages  TYPE STANDARD TABLE OF REF TO if_abap_behv_message WITH EMPTY KEY.
 
   TYPES:
     BEGIN OF save_result,
-      saved   TYPE abap_bool,
-      message TYPE single_message,
-      handle  TYPE if_bali_log=>ty_handle,
+      saved     TYPE abap_boolean,
+      handle    TYPE if_bali_log=>ty_handle,
+      message   TYPE single_message,
+      exception TYPE REF TO cx_root,
     END OF save_result.
+
+  TYPES:
+    BEGIN OF search_result,
+      found   TYPE abap_boolean,
+      message TYPE t100_message,
+    END OF search_result.
 
   "! Check if the messages has warnings or higher
   "! @parameter result | X = Warning or Higher, '' = No warning
@@ -134,4 +144,11 @@ INTERFACE zif_aml_log
   "! @parameter result | Log handle
   METHODS get_log_handle
     RETURNING VALUE(result) TYPE if_bali_log=>ty_handle.
+
+  "! Search for a specific message in the log
+  "! @parameter search | Message for search
+  "! @parameter result | Result structure
+  METHODS search_message
+    IMPORTING !search       TYPE t100_message
+    RETURNING VALUE(result) TYPE search_result.
 ENDINTERFACE.
