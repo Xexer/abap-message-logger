@@ -17,6 +17,16 @@ CLASS zcx_aml_error DEFINITION
         attr4 TYPE scx_attrname VALUE '',
       END OF error_release.
 
+    CONSTANTS:
+      BEGIN OF error_in_creation,
+        msgid TYPE symsgid      VALUE 'Z_AML',
+        msgno TYPE symsgno      VALUE '004',
+        attr1 TYPE scx_attrname VALUE '',
+        attr2 TYPE scx_attrname VALUE '',
+        attr3 TYPE scx_attrname VALUE '',
+        attr4 TYPE scx_attrname VALUE '',
+      END OF error_in_creation.
+
     METHODS constructor
       IMPORTING textid    LIKE if_t100_message=>t100key OPTIONAL
                 !previous LIKE previous                 OPTIONAL.

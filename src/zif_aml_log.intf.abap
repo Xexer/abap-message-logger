@@ -7,6 +7,8 @@ INTERFACE zif_aml_log
       subobject             TYPE cl_bali_header_setter=>ty_subobject,
       external_id           TYPE cl_bali_header_setter=>ty_external_id,
       default_message_class TYPE symsgid,
+      default_message_type  TYPE symsgty,
+      no_stacked_exception  TYPE abap_boolean,
       save_with_job         TYPE abap_bool,
       use_2nd_db_connection TYPE abap_bool,
       configuration         TYPE REF TO zif_aml_config,
@@ -69,7 +71,7 @@ INTERFACE zif_aml_log
   "! @parameter v4     | Placeholder 4
   METHODS add_message
     IMPORTING !class  TYPE bapi_message-id   OPTIONAL
-              !type   TYPE bapi_message-type DEFAULT if_bali_constants=>c_severity_status
+              !type   TYPE bapi_message-type OPTIONAL
               !number TYPE bapi_message-number
               v1      TYPE any               OPTIONAL
               v2      TYPE any               OPTIONAL
@@ -80,7 +82,7 @@ INTERFACE zif_aml_log
   "! @parameter type | Type for the message
   "! @parameter text | Text (Maximum 200 signs)
   METHODS add_message_text
-    IMPORTING !type TYPE bapi_message-type DEFAULT if_bali_constants=>c_severity_status
+    IMPORTING !type TYPE bapi_message-type OPTIONAL
               !text TYPE clike.
 
   "! Add a message from the system fields
@@ -90,12 +92,17 @@ INTERFACE zif_aml_log
   "! @parameter type      | Type for the message
   "! @parameter exception | Exception
   METHODS add_message_exception
-    IMPORTING !type      TYPE bapi_message-type DEFAULT if_bali_constants=>c_severity_error
+    IMPORTING !type      TYPE bapi_message-type OPTIONAL
               !exception TYPE REF TO cx_root.
+
+  "! Add message from BAPIRET2 structure
+  "! @parameter message | Message in BAPIRET2 format
+  METHODS add_message_bapi
+    IMPORTING !message TYPE bapi_message.
 
   "! Add message from BAPIRET2 table
   "! @parameter messages | Messages in BAPIRET2 format
-  METHODS add_message_bapi
+  METHODS add_message_bapis
     IMPORTING !messages TYPE bapi_messages.
 
   "! Get all messages in internal format
@@ -122,4 +129,9 @@ INTERFACE zif_aml_log
   "! @parameter result | Number of messages
   METHODS get_number_of_messages
     RETURNING VALUE(result) TYPE i.
+
+  "! Returns the log handle for further processing
+  "! @parameter result | Log handle
+  METHODS get_log_handle
+    RETURNING VALUE(result) TYPE if_bali_log=>ty_handle.
 ENDINTERFACE.

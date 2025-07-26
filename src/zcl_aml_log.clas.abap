@@ -7,7 +7,7 @@ CLASS zcl_aml_log DEFINITION
     INTERFACES zif_aml_log.
 
     METHODS constructor
-      IMPORTING setting TYPE zif_aml_log=>default_setting.
+      IMPORTING setting TYPE zif_aml_log=>default_setting OPTIONAL.
 
   PRIVATE SECTION.
     "! Configuration for internal settings
@@ -15,6 +15,9 @@ CLASS zcl_aml_log DEFINITION
 
     "! Internal messages
     DATA collected_messages TYPE zif_aml_log=>internal_messages.
+
+    "! Logging object (for access use method get_log)
+    DATA log_instance       TYPE REF TO if_bali_log.
 
     "! Format the message to flat message
     "! @parameter message | Message with all fields
@@ -36,6 +39,32 @@ CLASS zcl_aml_log DEFINITION
     METHODS fill_text_to_message
       IMPORTING !text         TYPE clike
       RETURNING VALUE(result) TYPE symsg.
+
+    "! Create the header for the log
+    "! @parameter result          | Instance of log header
+    "! @raising   cx_bali_runtime | Error creating the header
+    METHODS create_log_header
+      RETURNING VALUE(result) TYPE REF TO if_bali_header_setter
+      RAISING   cx_bali_runtime.
+
+    "! Get message class with default value
+    "! @parameter class  | Message class input
+    "! @parameter result | Assigned message class
+    METHODS get_message_class
+      IMPORTING !class        TYPE symsg-msgid
+      RETURNING VALUE(result) TYPE symsg-msgid.
+
+    "! Get message type with default value
+    "! @parameter type   | Message type input
+    "! @parameter result | Assigned message class
+    METHODS get_message_type
+      IMPORTING !type         TYPE symsg-msgty
+      RETURNING VALUE(result) TYPE symsg-msgty.
+
+    "! Returns the instance for the log and creates a new one, if it's empty
+    "! @parameter result | Instance for log
+    METHODS get_log
+      RETURNING VALUE(result) TYPE REF TO if_bali_log.
 ENDCLASS.
 
 
@@ -46,25 +75,24 @@ CLASS zcl_aml_log IMPLEMENTATION.
     IF me->setting-configuration IS INITIAL.
       me->setting-configuration = NEW zcl_aml_default_config( ).
     ENDIF.
-
-    IF me->setting-external_id IS INITIAL.
-      me->setting-external_id = xco_cp=>uuid( )->as( xco_cp_uuid=>format->c36 )->value.
-    ENDIF.
   ENDMETHOD.
 
 
   METHOD zif_aml_log~add_message.
+    DATA(new_message_class) = get_message_class( class ).
+    DATA(new_message_type) = get_message_type( type ).
+
     INSERT VALUE #( timestamp = utclong_current( )
-                    type      = type
-                    message   = VALUE symsg( msgty = type
-                                             msgid = class
+                    type      = new_message_type
+                    message   = VALUE symsg( msgty = new_message_type
+                                             msgid = new_message_class
                                              msgno = number
                                              msgv1 = v1
                                              msgv2 = v2
                                              msgv3 = v3
                                              msgv4 = v4 )
-                    item      = cl_bali_message_setter=>create( id         = class
-                                                                severity   = type
+                    item      = cl_bali_message_setter=>create( id         = new_message_class
+                                                                severity   = new_message_type
                                                                 number     = number
                                                                 variable_1 = CONV #( v1 )
                                                                 variable_2 = CONV #( v2 )
@@ -75,6 +103,15 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~add_message_bapi.
+    DATA messages TYPE zif_aml_log=>bapi_messages.
+
+    INSERT message INTO TABLE messages.
+
+    zif_aml_log~add_message_bapis( messages ).
+  ENDMETHOD.
+
+
+  METHOD zif_aml_log~add_message_bapis.
     LOOP AT messages INTO DATA(bapi_message).
       DATA(converted_message) = VALUE symsg( msgty = bapi_message-type
                                              msgid = bapi_message-id
@@ -95,14 +132,19 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
   METHOD zif_aml_log~add_message_exception.
     DATA(actual_exception) = exception.
+    DATA(new_message_type) = get_message_type( type ).
 
     WHILE actual_exception IS BOUND.
       INSERT VALUE #( timestamp = utclong_current( )
-                      type      = type
+                      type      = new_message_type
                       message   = extract_message_from_exception( actual_exception )
-                      item      = cl_bali_exception_setter=>create( severity  = type
+                      item      = cl_bali_exception_setter=>create( severity  = new_message_type
                                                                     exception = actual_exception ) )
              INTO TABLE collected_messages.
+
+      IF setting-no_stacked_exception = abap_true.
+        RETURN.
+      ENDIF.
 
       actual_exception = actual_exception->previous.
     ENDWHILE.
@@ -121,13 +163,14 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~add_message_text.
+    DATA(new_message_type) = get_message_type( type ).
     DATA(new_message) = fill_text_to_message( text ).
-    new_message-msgty = type.
+    new_message-msgty = new_message_type.
 
     INSERT VALUE #( timestamp = utclong_current( )
-                    type      = type
+                    type      = new_message_type
                     message   = new_message
-                    item      = cl_bali_free_text_setter=>create( severity = type
+                    item      = cl_bali_free_text_setter=>create( severity = new_message_type
                                                                   text     = text ) )
            INTO TABLE collected_messages.
   ENDMETHOD.
@@ -185,17 +228,12 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
   METHOD zif_aml_log~save.
     TRY.
-        DATA(log) = cl_bali_log=>create( ).
+        DATA(log) = get_log( ).
         LOOP AT collected_messages REFERENCE INTO DATA(message).
           log->add_item( message->item ).
         ENDLOOP.
 
-        DATA(header) = cl_bali_header_setter=>create( object      = setting-object
-                                                      subobject   = setting-subobject
-                                                      external_id = setting-external_id
-          )->set_expiry( expiry_date       = setting-configuration->get_expiry_date( )
-                         keep_until_expiry = setting-configuration->get_keep_until_expiry( ) ).
-
+        DATA(header) = create_log_header( ).
         log->set_header( header ).
 
         DATA(database) = cl_bali_log_db=>get_instance( ).
@@ -218,6 +256,20 @@ CLASS zcl_aml_log IMPLEMENTATION.
         RETURN VALUE #( saved   = abap_false
                         message = error->get_text( ) ).
     ENDTRY.
+  ENDMETHOD.
+
+
+  METHOD create_log_header.
+    IF setting-external_id IS INITIAL.
+      setting-external_id = xco_cp=>uuid( )->as( xco_cp_uuid=>format->c36 )->value.
+    ENDIF.
+
+    result = cl_bali_header_setter=>create( object      = setting-object
+                                            subobject   = setting-subobject
+                                            external_id = setting-external_id ).
+
+    result->set_expiry( expiry_date       = setting-configuration->get_expiry_date( )
+                        keep_until_expiry = setting-configuration->get_keep_until_expiry( ) ).
   ENDMETHOD.
 
 
@@ -260,5 +312,44 @@ CLASS zcl_aml_log IMPLEMENTATION.
                         msgv2 = message_text+50(50)
                         msgv3 = message_text+100(50)
                         msgv4 = message_text+150(50) ).
+  ENDMETHOD.
+
+
+  METHOD get_message_class.
+    IF class IS NOT INITIAL.
+      RETURN class.
+    ELSE.
+      RETURN setting-default_message_class.
+    ENDIF.
+  ENDMETHOD.
+
+
+  METHOD get_message_type.
+    IF type IS NOT INITIAL.
+      RETURN type.
+    ELSEIF setting-default_message_type IS NOT INITIAL.
+      RETURN setting-default_message_type.
+    ELSE.
+      RETURN if_bali_constants=>c_severity_error.
+    ENDIF.
+  ENDMETHOD.
+
+
+  METHOD get_log.
+    IF log_instance IS INITIAL.
+      TRY.
+          log_instance = cl_bali_log=>create( ).
+        CATCH cx_bali_runtime INTO DATA(bali_error).
+          RAISE EXCEPTION NEW zcx_aml_error( textid   = zcx_aml_error=>error_in_creation
+                                             previous = bali_error ).
+      ENDTRY.
+    ENDIF.
+
+    RETURN log_instance.
+  ENDMETHOD.
+
+
+  METHOD zif_aml_log~get_log_handle.
+    RETURN get_log( )->get_handle( ).
   ENDMETHOD.
 ENDCLASS.
