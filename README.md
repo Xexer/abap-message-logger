@@ -61,6 +61,7 @@ Methods that help to get more informations:
 | has_warning            | Check the messages for Warnings (WAEX)   |
 | merge_logs             | Merge another log into this one          |
 | save                   | Save messages to application log         |
+| search_message         | Search for a message in the log          |
 
 ## Usage
 
