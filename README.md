@@ -63,6 +63,10 @@ Methods that help to get more informations:
 | save                   | Save messages to application log         |
 | search_message         | Search for a message in the log          |
 
+## Unit Tests
+
+The framework is tested using unit tests, and currently all components are covered. If errors or enhancements are made, we would expand the unit tests.
+
 ## Usage
 
 Here you get some informations, how to use the log. You could also check the Unit Tests for message handling.
@@ -124,7 +128,3 @@ log->save( ).
 ### Error
 
 The framework catch possible exceptions and wrapps it in a NO_CHECK exception ZCX_AML_ERROR. For example if you want to save the log and an instance is not created, the exception could be raised.
-
-## Tests
-
-The framework is tested using unit tests, and currently all components are covered. If errors or enhancements are found, we would expand the tests.
