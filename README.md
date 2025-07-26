@@ -1,4 +1,4 @@
-# ABAP Message Logger for ABAP Cloud
+# Message Logger for ABAP Cloud (AML)
 
 A logger class for the most use-cases in ABAP Cloud. Focus is the logging of messages and types with the posibility to save the log to the Application Logs.
 
