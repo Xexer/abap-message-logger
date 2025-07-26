@@ -9,8 +9,8 @@ Support of ABAP Cloud (ABAP Environment, Public Cloud and Private Cloud) with ke
 - Configuration via Settings
 - Factory for Creation and/or Singleton
 - Support for Application Job, 2nd DB Connection
-- RAP Support
-- Context (data) **[Planned]**
+- Support for RAP exceptions
+- Context data **[Planned]**
 
 ## Configuration
 
