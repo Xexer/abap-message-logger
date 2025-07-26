@@ -74,6 +74,13 @@ The normal creation of a log object.
 DATA(log) = zcl_aml_log_factory=>create( ).
 ```
 
+When you want to set some settings in the class, manage them via the constructor.
+
+```ABAP
+DATA(log) = zcl_aml_log_factory=>create( VALUE #( default_message_class = 'Z_AML'
+                                                  default_message_type  = 'I' ) ).
+```                                                  
+
 If you want to reuse the log or havn't saved it, you can use the Singleton principle. You can get the DEFAULT log or create different versions with the identification.
 
 ```ABAP
@@ -81,3 +88,42 @@ DATA(log) = zcl_aml_log_factory=>get_instance( ).
 ```
 
 ### Messages
+
+Add messages via the different methods. Here to add a simple T100 message:
+
+```ABAP
+log->add_message( '001' ).
+```
+
+... or if you have catched an exception:
+
+```ABAP
+  CATCH cx_bali_runtime INTO DATA(bali_error).
+    log->add_message_exception( bali_error ).
+ENDTRY.
+```
+
+### Analysis
+
+If you want to validate the erros, you could use the helper methods to check for errors.
+
+```ABAP
+IF log->has_error( ).
+ENDIF
+```
+
+### Save
+
+To save the log you simple need to call the save method. Ensure that the settings
+
+```ABAP
+log->save( ).
+```
+
+### Error
+
+The framework catch possible exceptions and wrapps it in a NO_CHECK exception ZCX_AML_ERROR. For example if you want to save the log and an instance is not created, the exception could be raised.
+
+## Tests
+
+The framework is tested using unit tests, and currently all components are covered. If errors or enhancements are found, we would expand the tests.
