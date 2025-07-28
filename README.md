@@ -3,7 +3,7 @@
 A logger class for the most use-cases in ABAP Cloud. Focus is the logging of messages and types with the posibility to save the log to the Application Logs.
 
 ## ABAP Cloud
-Support of ABAP Cloud (ABAP Environment, Public Cloud and Private Cloud) with key capabilities:
+Support of ABAP Cloud (ABAP Environment, Public Cloud and Private Cloud S/4HANA 2023+) with key capabilities:
 
 - Mock- and testable
 - Configuration via Settings
