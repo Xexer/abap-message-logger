@@ -10,6 +10,8 @@ CLASS zcl_aml_log DEFINITION
       IMPORTING setting TYPE zif_aml_log=>default_setting OPTIONAL.
 
   PRIVATE SECTION.
+    TYPES generic_range TYPE RANGE OF string.
+
     "! Configuration for internal settings
     DATA setting            TYPE zif_aml_log=>default_setting.
 
@@ -72,6 +74,13 @@ CLASS zcl_aml_log DEFINITION
     METHODS add_internal_message
       IMPORTING !message TYPE zif_aml_log=>t100_message
                 item     TYPE REF TO if_bali_item_setter.
+
+    "! Fill range result, if the value is not initial
+    "! @parameter value  | Value for the message
+    "! @parameter result | Range as filter
+    METHODS fill_range
+      IMPORTING !value        TYPE clike
+      RETURNING VALUE(result) TYPE generic_range.
 ENDCLASS.
 
 
@@ -165,7 +174,7 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
     add_internal_message( message = new_message
                           item    = cl_bali_free_text_setter=>create( severity = new_message_type
-                                                                      text     = text ) ).
+                                                                      text     = CONV #( text ) ) ).
   ENDMETHOD.
 
 
@@ -359,27 +368,24 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~search_message.
-    DATA search_class  TYPE RANGE OF zif_aml_log=>t100_message-msgid.
-    DATA search_number TYPE RANGE OF zif_aml_log=>t100_message-msgno.
-    DATA search_type   TYPE RANGE OF zif_aml_log=>t100_message-msgty.
-
-    IF search-msgid IS NOT INITIAL.
-      search_class = VALUE #( ( sign = 'I' option = 'EQ' low = search-msgid ) ).
-    ENDIF.
-
-    IF search-msgno IS NOT INITIAL.
-      search_number = VALUE #( ( sign = 'I' option = 'EQ' low = search-msgno ) ).
-    ENDIF.
-
-    IF search-msgty IS NOT INITIAL.
-      search_type = VALUE #( ( sign = 'I' option = 'EQ' low = search-msgty ) ).
-    ENDIF.
-
-    LOOP AT collected_messages INTO DATA(found_message) WHERE     message-msgid IN search_class
-                                                              AND message-msgno IN search_number
-                                                              AND message-msgty IN search_type.
+    LOOP AT collected_messages INTO DATA(found_message) WHERE     message-msgid IN fill_range( search-msgid )
+                                                              AND message-msgno IN fill_range( search-msgno )
+                                                              AND message-msgty IN fill_range( search-msgty )
+                                                              AND message-msgv1 IN fill_range( search-msgv1 )
+                                                              AND message-msgv2 IN fill_range( search-msgv2 )
+                                                              AND message-msgv3 IN fill_range( search-msgv3 )
+                                                              AND message-msgv4 IN fill_range( search-msgv4 ).
       RETURN VALUE #( found   = abap_true
                       message = found_message-message ).
     ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD fill_range.
+    IF value IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    RETURN VALUE #( ( sign = 'I' option = 'EQ' low = value ) ).
   ENDMETHOD.
 ENDCLASS.
