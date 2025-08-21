@@ -42,6 +42,8 @@ Methods to add messages to the object:
 | add_message_exception | Any exception (also stacked) |
 | add_message_system    | System variables (SY)        |
 | add_message_text      | Generic text or string       |
+| add_message_xco       | Single XCO message           |
+| add_message_xcos      | XCO message container        |
 
 Methods to get the collected messages:
 
@@ -51,6 +53,7 @@ Methods to get the collected messages:
 | get_messages_bapi | BAPIRET2 table                                            |
 | get_messages_flat | String table                                              |
 | get_messages_rap  | Exceptions with interface IF_ABAP_BEHV_MESSAGE            |
+| get_messages_xco  | XCO message container                                     |
 
 Methods that help to get more informations:
 
