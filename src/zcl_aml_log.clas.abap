@@ -178,6 +178,25 @@ CLASS zcl_aml_log IMPLEMENTATION.
   ENDMETHOD.
 
 
+  METHOD zif_aml_log~add_message_xco.
+    add_internal_message( message = message->value
+                          item    = cl_bali_message_setter=>create( id         = message->value-msgid
+                                                                    severity   = message->value-msgty
+                                                                    number     = message->value-msgno
+                                                                    variable_1 = message->value-msgv1
+                                                                    variable_2 = message->value-msgv2
+                                                                    variable_3 = message->value-msgv3
+                                                                    variable_4 = message->value-msgv4 ) ).
+  ENDMETHOD.
+
+
+  METHOD zif_aml_log~add_message_xcos.
+    LOOP AT message_container->value INTO DATA(message).
+      zif_aml_log~add_message_xco( message ).
+    ENDLOOP.
+  ENDMETHOD.
+
+
   METHOD zif_aml_log~get_messages.
     RETURN collected_messages.
   ENDMETHOD.
@@ -204,6 +223,12 @@ CLASS zcl_aml_log IMPLEMENTATION.
   METHOD zif_aml_log~get_messages_rap.
     RETURN VALUE #( FOR message IN collected_messages
                     ( zcx_aml_message=>new_message_from_symsg( message-message ) ) ).
+  ENDMETHOD.
+
+
+  METHOD zif_aml_log~get_messages_xco.
+    RETURN xco_cp=>messages( VALUE #( FOR message IN collected_messages
+                                      ( xco_cp=>message( message-message ) ) ) ).
   ENDMETHOD.
 
 

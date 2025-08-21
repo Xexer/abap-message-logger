@@ -38,6 +38,12 @@
      <MSGNR>004</MSGNR>
      <TEXT>Log object could not be created</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>Z_AML</ARBGB>
+     <MSGNR>005</MSGNR>
+     <TEXT>Test message without placeholder</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>

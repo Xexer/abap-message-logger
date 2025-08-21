@@ -115,6 +115,16 @@ INTERFACE zif_aml_log
   METHODS add_message_bapis
     IMPORTING !messages TYPE bapi_messages.
 
+  "! Add message from XCO class
+  "! @parameter message | Messages as XCO reference
+  METHODS add_message_xco
+    IMPORTING !message TYPE REF TO if_xco_message.
+
+  "! Add message from XCO message container
+  "! @parameter message_container | XCO message container
+  METHODS add_message_xcos
+    IMPORTING message_container TYPE REF TO if_xco_messages.
+
   "! Get all messages in internal format
   "! @parameter result | Messages in internal format
   METHODS get_messages
@@ -134,6 +144,11 @@ INTERFACE zif_aml_log
   "! @parameter result | Messages as Exception
   METHODS get_messages_rap
     RETURNING VALUE(result) TYPE rap_messages.
+
+  "! Get all messages in XCO message container
+  "! @parameter result | Messages as XCO container
+  METHODS get_messages_xco
+    RETURNING VALUE(result) TYPE REF TO if_xco_messages.
 
   "! Return the number of messages in log
   "! @parameter result | Number of messages

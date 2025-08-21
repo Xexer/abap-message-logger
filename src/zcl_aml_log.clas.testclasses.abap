@@ -160,7 +160,18 @@ CLASS ltc_external_methods IMPLEMENTATION.
 
     cut->add_message_text( 'Some Freestyle text' ).
 
-    cl_abap_unit_assert=>assert_equals( exp = 7
+    DATA(message) = xco_cp=>message( VALUE #( msgid = 'Z_AML'
+                                              msgno = '005'
+                                              msgty = 'S' ) ).
+    cut->add_message_xco( message ).
+
+    DATA(message_for_container) = xco_cp=>message( VALUE #( msgid = 'Z_AML'
+                                                            msgno = '004'
+                                                            msgty = 'W' ) ).
+
+    cut->add_message_xcos( xco_cp=>messages( VALUE #( ( message ) ( message_for_container ) ) ) ).
+
+    cl_abap_unit_assert=>assert_equals( exp = 10
                                         act = cut->get_number_of_messages( ) ).
   ENDMETHOD.
 
@@ -194,6 +205,8 @@ CLASS ltc_external_methods IMPLEMENTATION.
                                         act = lines( cut->get_messages_flat( ) ) ).
     cl_abap_unit_assert=>assert_equals( exp = 2
                                         act = lines( cut->get_messages_rap( ) ) ).
+    cl_abap_unit_assert=>assert_equals( exp = 2
+                                        act = lines( cut->get_messages_xco( )->value ) ).
   ENDMETHOD.
 
 
