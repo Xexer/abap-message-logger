@@ -128,6 +128,15 @@ To save the log you simple need to call the save method. Ensure that the setting
 log->save( ).
 ```
 
+### Where-Used list
+
+If you want to use the where-used list of messages without creating dummy variables each time and using pragmas for ATC and ABAP Cleaner, you can use the corresponding variable in the log directly in your code before logging the message.
+
+```ABAP
+MESSAGE s005(z_aml) INTO log->message_text.
+log->add_message_system( ).
+```
+
 ### Error
 
 The framework catch possible exceptions and wrapps it in a NO_CHECK exception ZCX_AML_ERROR. For example if you want to save the log and an instance is not created, the exception could be raised.
