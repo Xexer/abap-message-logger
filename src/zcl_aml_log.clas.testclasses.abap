@@ -95,6 +95,7 @@ CLASS ltc_external_methods DEFINITION FINAL
     METHODS search_message_found          FOR TESTING RAISING cx_static_check.
     METHODS search_message_not_found      FOR TESTING RAISING cx_static_check.
     METHODS search_message_with_type      FOR TESTING RAISING cx_static_check.
+    METHODS message_for_where_used        FOR TESTING RAISING cx_static_check.
 ENDCLASS.
 
 
@@ -339,5 +340,16 @@ CLASS ltc_external_methods IMPLEMENTATION.
                                                  msgty = 'W' ) ).
 
     cl_abap_unit_assert=>assert_true( result-found ).
+  ENDMETHOD.
+
+
+  METHOD message_for_where_used.
+    DATA(cut) = zcl_aml_log_factory=>create( ).
+
+    MESSAGE s005(z_aml) INTO cut->message_text.
+    cut->add_message_system( ).
+
+    cl_abap_unit_assert=>assert_equals( exp = 1
+                                        act = cut->get_number_of_messages( ) ).
   ENDMETHOD.
 ENDCLASS.

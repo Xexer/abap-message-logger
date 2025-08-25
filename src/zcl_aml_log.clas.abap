@@ -116,26 +116,22 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~add_message_bapi.
-    DATA messages TYPE zif_aml_log=>bapi_messages.
+    DATA(converted_message) = VALUE zif_aml_log=>t100_message( msgty = message-type
+                                                               msgid = message-id
+                                                               msgno = message-number
+                                                               msgv1 = message-message_v1
+                                                               msgv2 = message-message_v2
+                                                               msgv3 = message-message_v3
+                                                               msgv4 = message-message_v4 ).
 
-    INSERT message INTO TABLE messages.
-
-    zif_aml_log~add_message_bapis( messages ).
+    add_internal_message( message = converted_message
+                          item    = cl_bali_message_setter=>create_from_bapiret2( message ) ).
   ENDMETHOD.
 
 
   METHOD zif_aml_log~add_message_bapis.
     LOOP AT messages INTO DATA(bapi_message).
-      DATA(converted_message) = VALUE zif_aml_log=>t100_message( msgty = bapi_message-type
-                                                                 msgid = bapi_message-id
-                                                                 msgno = bapi_message-number
-                                                                 msgv1 = bapi_message-message_v1
-                                                                 msgv2 = bapi_message-message_v2
-                                                                 msgv3 = bapi_message-message_v3
-                                                                 msgv4 = bapi_message-message_v4 ).
-
-      add_internal_message( message = converted_message
-                            item    = cl_bali_message_setter=>create_from_bapiret2( bapi_message ) ).
+      zif_aml_log~add_message_bapi( bapi_message ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -162,6 +158,8 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~add_message_system.
+    CLEAR zif_aml_log~message_text.
+
     add_internal_message( message = xco_cp=>sy->message( )->value
                           item    = cl_bali_message_setter=>create_from_sy( ) ).
   ENDMETHOD.

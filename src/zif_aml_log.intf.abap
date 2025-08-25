@@ -16,7 +16,6 @@ INTERFACE zif_aml_log
 
   TYPES:
     single_message TYPE c LENGTH 220,
-
     t100_message   TYPE symsg.
 
   TYPES:
@@ -30,7 +29,7 @@ INTERFACE zif_aml_log
 
   TYPES:
     bapi_message  TYPE bapiret2,
-    bapi_messages TYPE STANDARD TABLE OF bapi_message WITH EMPTY KEY,
+    bapi_messages TYPE STANDARD TABLE OF bapi_message WITH DEFAULT KEY,
 
     flat_message  TYPE string,
     flat_messages TYPE STANDARD TABLE OF flat_message WITH EMPTY KEY,
@@ -51,13 +50,16 @@ INTERFACE zif_aml_log
       message TYPE t100_message,
     END OF search_result.
 
+  " Dummy-Text for system messages (as reference)
+  DATA message_text TYPE string.
+
   "! Check if the messages has warnings or higher
   "! @parameter result | X = Warning or Higher, '' = No warning
   METHODS has_warning
     RETURNING VALUE(result) TYPE abap_boolean.
 
   "! Check if the messages has errors
-  "! @parameter result | X = Errors, '' = No warning
+  "! @parameter result | X = Errors, '' = No error
   METHODS has_error
     RETURNING VALUE(result) TYPE abap_boolean.
 
