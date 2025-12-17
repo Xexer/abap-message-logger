@@ -96,6 +96,8 @@ CLASS ltc_external_methods DEFINITION FINAL
     METHODS search_message_not_found      FOR TESTING RAISING cx_static_check.
     METHODS search_message_with_type      FOR TESTING RAISING cx_static_check.
     METHODS message_for_where_used        FOR TESTING RAISING cx_static_check.
+    METHODS emergency_log                 FOR TESTING RAISING cx_static_check.
+    METHODS emergency_log_not_accessible  FOR TESTING RAISING cx_static_check.
 ENDCLASS.
 
 
@@ -351,5 +353,33 @@ CLASS ltc_external_methods IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_equals( exp = 1
                                         act = cut->get_number_of_messages( ) ).
+  ENDMETHOD.
+
+
+  METHOD emergency_log.
+    DATA(cut) = zcl_aml_log_factory=>create( VALUE #( object            = 'Z_AML_LOG'
+                                                      subobject         = 'TEST'
+                                                      emergency_logging = abap_true ) ).
+    cut->add_message_text( 'Save in Any case' ).
+
+    DATA(result) = cut->save( ).
+
+    cl_abap_unit_assert=>assert_true( result-saved ).
+    cl_abap_unit_assert=>assert_not_initial( result-handle ).
+  ENDMETHOD.
+
+
+  METHOD emergency_log_not_accessible.
+    TRY.
+        DATA(cut) = zcl_aml_log_factory=>create( VALUE #( object            = 'APLO_TEST'
+                                                          subobject         = 'SUBOBJECT1'
+                                                          emergency_logging = abap_true ) ).
+
+        cut->add_message_text( 'Save in Any case' ).
+        cl_abap_unit_assert=>fail( ).
+
+      CATCH zcx_aml_error.
+        cl_abap_unit_assert=>assert_true( abap_true ).
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.

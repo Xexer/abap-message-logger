@@ -11,6 +11,7 @@ INTERFACE zif_aml_log
       no_stacked_exception  TYPE abap_boolean,
       save_with_job         TYPE abap_boolean,
       use_2nd_db_connection TYPE abap_boolean,
+      emergency_logging     TYPE abap_boolean,
       configuration         TYPE REF TO zif_aml_config,
     END OF default_setting.
 

@@ -21,6 +21,9 @@ CLASS zcl_aml_log DEFINITION
     "! Logging object (for access use method get_log)
     DATA log_instance       TYPE REF TO if_bali_log.
 
+    "! Emergency Log for instant logging
+    DATA emergency_log      TYPE REF TO if_xco_cp_bal_log.
+
     "! Format the message to flat message
     "! @parameter message | Message with all fields
     "! @parameter result  | Flat message
@@ -81,6 +84,12 @@ CLASS zcl_aml_log DEFINITION
     METHODS fill_range
       IMPORTING !value        TYPE clike
       RETURNING VALUE(result) TYPE generic_range.
+
+    "! Create emergency log object for use
+    METHODS create_emergency_log.
+
+    "! Check if external Id is filled or fill it with random Id
+    METHODS check_external_id.
 ENDCLASS.
 
 
@@ -91,6 +100,8 @@ CLASS zcl_aml_log IMPLEMENTATION.
     IF me->setting-configuration IS INITIAL.
       me->setting-configuration = NEW zcl_aml_default_config( ).
     ENDIF.
+
+    create_emergency_log( ).
   ENDMETHOD.
 
 
@@ -252,6 +263,11 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD zif_aml_log~save.
+    IF setting-emergency_logging = abap_true.
+      RETURN VALUE #( saved  = abap_true
+                      handle = emergency_log->handle ).
+    ENDIF.
+
     TRY.
         DATA(log) = get_log( ).
         LOOP AT collected_messages REFERENCE INTO DATA(message).
@@ -287,10 +303,7 @@ CLASS zcl_aml_log IMPLEMENTATION.
 
 
   METHOD create_log_header.
-    IF setting-external_id IS INITIAL.
-      setting-external_id = xco_cp=>uuid( )->as( xco_cp_uuid=>format->c36 )->value.
-    ENDIF.
-
+    check_external_id( ).
     result = cl_bali_header_setter=>create( object      = setting-object
                                             subobject   = setting-subobject
                                             external_id = setting-external_id ).
@@ -387,6 +400,10 @@ CLASS zcl_aml_log IMPLEMENTATION.
                     message   = message
                     item      = item )
            INTO TABLE collected_messages.
+
+    IF setting-emergency_logging = abap_true.
+      emergency_log->add_message( message ).
+    ENDIF.
   ENDMETHOD.
 
 
@@ -410,5 +427,31 @@ CLASS zcl_aml_log IMPLEMENTATION.
     ENDIF.
 
     RETURN VALUE #( ( sign = 'I' option = 'EQ' low = value ) ).
+  ENDMETHOD.
+
+
+  METHOD create_emergency_log.
+    IF setting-emergency_logging = abap_false.
+      RETURN.
+    ENDIF.
+
+    check_external_id( ).
+
+    TRY.
+        emergency_log = xco_cp_bal=>for->database( )->log->create( iv_object      = setting-object
+                                                                   iv_subobject   = setting-subobject
+                                                                   iv_external_id = setting-external_id ).
+
+      CATCH cx_root INTO DATA(xco_log_error).
+        RAISE EXCEPTION NEW zcx_aml_error( textid   = zcx_aml_error=>error_in_creation
+                                           previous = xco_log_error ).
+    ENDTRY.
+  ENDMETHOD.
+
+
+  METHOD check_external_id.
+    IF setting-external_id IS INITIAL.
+      setting-external_id = xco_cp=>uuid( )->as( xco_cp_uuid=>format->c36 )->value.
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
