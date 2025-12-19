@@ -1,3 +1,22 @@
+"! The factory creates new instances for logs, you can find two methods for this purpose:
+"! <ul>
+"!  <li><strong>CREATE</strong> - Creates a single log object via settings.</li>
+"!  <li><strong>GET_INSTANCE</strong> - Creates an instance and saves it to the identification. When you request
+"! the same ID you will get the object from the buffer</li>
+"! </ul>
+"! <br/>
+"! Here you get some informations for the settings for a log object:
+"! <ul>
+"!  <li><strong>object, subobject</strong> - Identification for the BAL Log and only needed if you want to save the log.</li>
+"!  <li><strong>external_id</strong> - External ID for saving and finding the object</li>
+"!  <li><strong>default_message_class</strong> - Default message class, when you add a message (ADD_MESSAGE).</li>
+"!  <li><strong>default_message_type</strong> - Default type for saving a message (ADD_MESSAGE, ADD_MESSAGE_EXCEPTION, ADD_MESSAGE_TEXT)</li>
+"!  <li><strong>no_stacked_exception</strong> - When X you onnly add the top message from the exception, previous is ignored.</li>
+"!  <li><strong>save_with_job</strong> - The log is attached to the Application Job and is visible in the Fiori App.</li>
+"!  <li><strong>use_2nd_db_connection</strong> - You use a second DB connection to save the log, so no COMMIT in actual session.</li>
+"!  <li><strong>emergency_logging</strong> - Logs messages directly, no save needed. Performance is really bad in this mode</li>
+"!  <li><strong>configuration</strong> - Object from type ZIF_AML_CONFIG for archiving options.</li>
+"! </ul>
 CLASS zcl_aml_log_factory DEFINITION
   PUBLIC ABSTRACT FINAL
   CREATE PUBLIC
