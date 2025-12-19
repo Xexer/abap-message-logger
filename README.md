@@ -26,6 +26,7 @@ You can configure the log during the creation. Here are the different settings e
 | no_stacked_exceptions | Only the top exception is extracted                               |
 | save_with_job         | Save the log with the Application Job                             |
 | use_2nd_db_connection | Use the 2nd connection to save log (Works with rollback work)     |
+| emergency_logging     | The messages are logged immediately, but performance is not particularly good. Saving is not necessary. |
 | configuration         | Configuration object for archive settings                         |
 
 You can create your own configuration, if you want to overwrite archive settings from ZCL_AML_DEFAULT_CONFIG.
